@@ -1,0 +1,10 @@
+docs
+mocks
+.env
+
+*.jpg
+*.png
+
+coverage.out
+coverage.html
+tests_app
