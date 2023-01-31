@@ -1,0 +1,15 @@
+server:
+  host: localhost
+  port: 8080
+  readTimeout: 10s
+  writeTimeout: 10s
+  maxHeaderBytes: 4096
+
+db:
+  host: database
+  port: 5432
+  sslmode: disable
+
+auth:
+  accessTokenTTL: 15m
+  refreshTokenTTL: 720h

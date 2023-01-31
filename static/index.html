@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru" id="vue-app">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ title }}</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"> <!--password eye-->
+        <link rel="stylesheet" href="main.css">
+        <!--link rel="icon" type="image/x-icon" href="favicon.ico" /-->
+        <script src="https://unpkg.com/vue"></script>
+    </head>
+
+    <body>
+        <header class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
+            <h5 class="my-0 mr-md-auto font-weight-normal navigate" @click="openTestsList">Тесты</h5>
+            <h5 class="my-0 mr-md-auto font-weight-normal"><a class="navigate" target="_blank" rel="noopener noreferrer" href="/swagger/index.html">API documentation</a></h5>
+            <nav class="my-2 my-md-0 mr-md-3">
+                <span v-if="access_token != undefined" @click="signOut" class="navigate">Выйти</span>
+                <template v-else>
+                    <span @click="signInOpenForm" class="navigate">&#9094;Вход</span>
+                    <span @click="signUpOpenForm" class="navigate">Регистрация</span>
+                </template>
+            </nav>
+        </header>
+
+        <aside></aside>
+
+        <main>
+            <div class="overlay" ref="login" tabindex="0"
+            v-show="loginOpen && !access_token"
+            @click="(e) => loginOpen=e.target.className != 'overlay' && e.target.className != 'overlay-closebtn'"
+            @keyup.esc="loginOpen=false"
+            @keyup.enter="signIn">
+                <span class="overlay-closebtn" title="Close Overlay"> &#215 </span>
+                <div class="overlay-wrap">
+                    <h2>Sign In</h2>
+                    <input type="text" v-model.lazy.trim="loginInfo.username" placeholder="username"/>
+                    <div class="password-container">
+                        <input :type="loginShowPassword ? 'text' : 'password'" placeholder="password" v-model.lazy.trim="loginInfo.password">
+                        <i class="fa-solid fa-eye" @click="loginShowPassword = !loginShowPassword"></i>
+                    </div>
+                    <button @click="signIn">sign in</button>
+                </div>
+            </div>
+
+            <div class="overlay" ref="reg" tabindex="0"
+            v-show="registrationOpen && !access_token"
+            @click="(e) => registrationOpen=e.target.className != 'overlay' && e.target.className != 'overlay-closebtn'"
+            @keyup.esc="registrationOpen=false">
+                <span class="overlay-closebtn" title="Close Overlay"> &#215 </span>
+                <div class="overlay-wrap">
+                <h2>Sign Up</h2>
+                    <input type="text" v-model.lazy.trim="registrationInfo.username" placeholder="username"/>
+                    <div class="password-container">
+                        <input :type="registrationShowPassword ? 'text' : 'password'" v-model.lazy.trim="registrationInfo.password" placeholder="password"/>
+                        <i class="fa-solid fa-eye" @click="registrationShowPassword = !registrationShowPassword"></i>
+                    </div>
+                    <input type="text" v-model.lazy.trim="registrationInfo.name" placeholder="name"/>
+                    <input type="text" v-model.lazy.trim="registrationInfo.email" placeholder="email"/>
+                    <button @click="signUp">sign up</button>
+                </div>
+            </div>
+
+            <div v-if="page() === 'list'" v-for="(test,i) in testList" class="container">
+                <p style="text-align: center"><b>{{ test.title }}</b></p>
+                <p v-if="test.description">{{ test.description }}</p>
+                <button @click="retrieveTestById(test.id)">начать тест</button>
+            </div>
+
+            <div v-else-if="page() === 'test' && access_token">
+                <div class="container">
+                    <p style="text-align: center"><b>{{ test.test.title }}</b></p>
+                    <p>{{ test.test.description }}</p>
+                </div>
+                <hr>
+                <div v-for="(question,i) in test.questions" class="container">
+                    Вопрос {{ i+1 }}
+                    <br>{{ question.text }}
+
+                    <div v-if="question.answer_type === 'freeField'">
+                        <input type="text" v-model.lazy.trim="question.response" :disabled="test.test_answer"/>
+                        <span v-if="question.true_answers" style="color:green;">{{ question.true_answers[0] }}</span>
+                    </div>
+                    <div v-if="question.answer_type === 'oneSelect'" v-for="answer in question.show_answers" :style="question.style">
+                        <input type="radio"
+                        v-model="question.response"
+                        :id="question.id + answer.value"
+                        :name="question.id"
+                        :value="answer.value"
+                        :disabled="test.test_answer"/>
+                        <label :for="question.id + answer.value" :style="answer.style">{{ answer.value }}</label>
+                        <br />
+                    </div>
+                    <div v-if="question.answer_type === 'manySelect'" v-for="answer in question.show_answers">
+                        <input type="checkbox" 
+                        v-model="question.response"
+                        :id="question.id + answer.value"
+                        :name="question.id"
+                        :value="answer.value"
+                        :disabled="test.test_answer"/>
+                        <label :for="question.id + answer.value" :style="answer.style">{{ answer.value }}</label>
+                        <br />
+                    </div>
+                    <button v-if="!test.test_answer" @click="setAnswer" :question_index="i">ответить</button>
+                </div>
+                <div v-if="!test.test_answer" style="position: relative; margin: 0 auto; max-width:550px">
+                    <button @click="completeTest(test.test.id)">Завершить тест</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="container text-muted">
+                <address>
+                    Техническая поддержка и помощь пользователям: <a href="mailto:noreply@gmail.com">noreply@gmail.com</a>
+                </address>
+                <a href="/privacy">Политика конфиденциальности</a><br>
+                <a href="/about">О сайте</a><br>
+                <a href="/faq">FAQ</a><br>
+            </div>
+        </footer>
+
+        <script src="vue_app.js"></script>
+    </body>
+</html>
